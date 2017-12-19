@@ -327,6 +327,40 @@ class TransactionTest < ActiveRecord::TestCase
     refute_predicate topic_two, :persisted?
   end
 
+  def test_nested_transaction_with_new_transaction_applies_parent_state_on_rollback
+    topic = nil
+
+    begin
+      Topic.transaction do
+        begin
+          Topic.transaction do
+            topic = Topic.create!(title: "A new topic")
+            raise ActiveRecord::Rollback
+          end
+        rescue
+          refute_predicate topic, :persisted?
+        end
+      end
+    end
+  end
+
+  def test_nested_transaction_with_new_transaction_applies_parent_state_on_rollback_from_standard_error
+    topic = nil
+
+    begin
+      Topic.transaction do
+        begin
+          Topic.transaction do
+            topic = Topic.create!(title: "A new topic")
+            raise StandardError
+          end
+        rescue
+          refute_predicate topic, :persisted?
+        end
+      end
+    end
+  end
+
   def test_nested_transaction_without_new_transaction_applies_parent_state_on_rollback
     topic_one = Topic.new(title: "A new topic")
     topic_two = Topic.new(title: "Another new topic")
